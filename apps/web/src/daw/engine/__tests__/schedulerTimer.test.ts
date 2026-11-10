@@ -8,7 +8,7 @@ afterEach(() => vi.useRealTimers());
 function fakeEnv(opts: { workerThrows?: boolean } = {}) {
   const log = { created: 0, posted: [] as unknown[], terminated: 0, revoked: [] as string[], blobParts: [] as unknown[][] };
   class FakeWorker {
-    static instance!: FakeWorker;
+    static instance: FakeWorker;
     onmessage: ((e: unknown) => void) | null = null;
     onerror: ((e: unknown) => void) | null = null;
     constructor(public url: string) {

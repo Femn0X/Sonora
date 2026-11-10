@@ -42,7 +42,6 @@ plugin bridge). These are next in the roadmap, in that order.
 ## Getting started (once dependencies are installed)
 
 ```bash
-npm install
 pnpm install
 npm run db:up          # postgres, redis, minio
 npm run db:migrate
