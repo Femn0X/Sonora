@@ -1,0 +1,28 @@
+{
+  "name": "@sonora/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify:audio": "vitest run --config verification/vitest.audio.config.ts",
+    "verify:ui": "vitest run --config verification/vitest.ui.config.ts"
+  },
+  "dependencies": {
+    "@sonora/schema": "workspace:*",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/react": "^18.3.3",
+    "@types/node": "^20.14.0",
+    "vitest": "^2.0.5"
+  }
+}

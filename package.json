@@ -1,0 +1,28 @@
+{
+  "name": "sonora",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @sonora/web --filter @sonora/api dev",
+    "dev:web": "pnpm --filter @sonora/web dev",
+    "dev:api": "pnpm --filter @sonora/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "pnpm --filter @sonora/api run db:migrate",
+    "db:studio": "pnpm --filter @sonora/api run db:studio"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@prisma/client": "^7.10.0",
+    "eslint": "^9.9.0",
+    "prisma": "^7.10.1",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.3.0"
+  },
+  "dependencies": {
+    "pnpm": "^12.16.1"
+  }
+}

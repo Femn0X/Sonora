@@ -1,0 +1,4 @@
+# Local-only files: never commit these
+.env
+.data/
+dist/

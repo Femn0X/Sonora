@@ -1,0 +1,257 @@
+// Sonora — core database schema (MVP scope)
+// See ARCHITECTURE.md §8 for the full rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectVisibility {
+  private
+  unlisted
+  public
+}
+
+enum ProjectLicense {
+  no_remix
+  remix_allowed
+  remix_with_attribution
+  remix_commercial
+  cc_by
+  cc_by_sa
+  cc_by_nc
+}
+
+enum ProjectOriginType {
+  original
+  fork
+  remix
+  edit
+  bootleg
+  alt_version
+}
+
+enum CreditRole {
+  original_creator
+  remixer
+  collaborator
+}
+
+enum CollaboratorRole {
+  owner
+  editor
+  viewer
+}
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  email       String   @unique
+  displayName String
+  avatarUrl   String?
+  bio         String?
+  createdAt   DateTime @default(now())
+
+  projects       Project[]       @relation("ProjectOwner")
+  versions       Version[]
+  tracks         Track[]
+  clips          Clip[]
+  comments       Comment[]
+  likes          Like[]
+  credits        Credit[]
+  collaborations ProjectCollaborator[]
+
+  @@map("users")
+}
+
+model Project {
+  id              String            @id @default(uuid())
+  ownerId         String
+  owner           User              @relation("ProjectOwner", fields: [ownerId], references: [id])
+  title           String
+  slug            String            @unique
+  description     String?
+  bpm             Int               @default(120)
+  keySignature    String?
+  visibility      ProjectVisibility @default(private)
+  license         ProjectLicense    @default(remix_with_attribution)
+
+  originProjectId String?
+  originProject   Project?          @relation("ProjectLineage", fields: [originProjectId], references: [id])
+  descendants     Project[]         @relation("ProjectLineage")
+  originVersionId String?
+  originType      ProjectOriginType?
+
+  headVersionId   String?
+
+  coverImageUrl   String?
+  playCount       Int               @default(0)
+  likeCount       Int               @default(0)
+  remixCount      Int               @default(0)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  versions        Version[]
+  branches        Branch[]
+  tracks          Track[]
+  clips           Clip[]
+  instruments     Instrument[]
+  credits         Credit[]
+  comments        Comment[]
+  likes           Like[]
+  collaborators   ProjectCollaborator[]
+
+  @@index([visibility])
+  @@index([originProjectId])
+  @@map("projects")
+}
+
+model Version {
+  id               String   @id @default(uuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id])
+  parentVersionIds String[] // supports merge commits (multiple parents)
+  authorId         String
+  author           User     @relation(fields: [authorId], references: [id])
+  message          String
+  manifestUrl      String   // pointer to snapshot in object storage
+  diffSummary      Json?
+  createdAt        DateTime @default(now())
+
+  @@index([projectId])
+  @@map("versions")
+}
+
+model Branch {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  name          String
+  headVersionId String
+  createdBy     String
+  createdAt     DateTime @default(now())
+
+  @@unique([projectId, name])
+  @@map("branches")
+}
+
+model Track {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  name          String
+  type          String   // "midi" | "audio" | "bus"
+  color         String
+  orderIndex    Int
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  mixerSettings Json
+
+  clips Clip[]
+
+  @@index([projectId])
+  @@map("tracks")
+}
+
+model Clip {
+  id          String   @id @default(uuid())
+  trackId     String
+  track       Track    @relation(fields: [trackId], references: [id])
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  type        String   // "midi" | "audio"
+  startBeat   Float
+  lengthBeats Float
+  contentRef  Json     // inline MIDI notes, or {assetHash, offset...} for audio
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([trackId])
+  @@index([projectId])
+  @@map("clips")
+}
+
+model Asset {
+  hash             String   @id
+  sizeBytes        Int
+  mimeType         String
+  storageUrl       String
+  originalFilename String
+  sourceLibrary    String?
+  uploadedBy       String
+  createdAt        DateTime @default(now())
+
+  @@map("assets")
+}
+
+model Instrument {
+  id          String  @id @default(uuid())
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id])
+  pluginId    String
+  pluginType  String
+  version     String
+  isBuiltIn   Boolean @default(true)
+  presetData  Json
+  displayName String
+
+  @@map("instruments")
+}
+
+model Credit {
+  id              String     @id @default(uuid())
+  projectId       String
+  project         Project    @relation(fields: [projectId], references: [id])
+  userId          String
+  user            User       @relation(fields: [userId], references: [id])
+  role            CreditRole
+  sourceProjectId String?    // which ancestor project this credit originates from
+
+  @@map("credits")
+}
+
+model Comment {
+  id                String    @id @default(uuid())
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id])
+  authorId          String
+  author            User      @relation(fields: [authorId], references: [id])
+  body              String
+  timestampInBeats  Float?
+  parentCommentId   String?
+  createdAt         DateTime  @default(now())
+
+  @@index([projectId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@map("likes")
+}
+
+model ProjectCollaborator {
+  id        String           @id @default(uuid())
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id])
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  role      CollaboratorRole @default(viewer)
+  createdAt DateTime         @default(now())
+
+  @@unique([projectId, userId])
+  @@map("project_collaborators")
+}
