@@ -1,4 +1,4 @@
-name: Build
+name: Cross-platform build
 
 on:
   push:
@@ -10,9 +10,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
     env:
       DATABASE_URL: postgresql://sonora:sonora@localhost:5432/sonora?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
 
     steps:
       - name: Check out repository
@@ -40,3 +47,15 @@ jobs:
 
       - name: Build web app
         run: pnpm --filter @sonora/web build
+
+      # These are web/API build outputs, not native desktop installers.
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonora-build-${{ matrix.os }}
+          path: |
+            apps/api/dist/
+            apps/web/.next/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
